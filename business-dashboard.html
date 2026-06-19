@@ -1,0 +1,2064 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BizFlow — Business Intelligence Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap');
+
+  :root {
+    --bg: #0a0d14;
+    --surface: #111622;
+    --card: #161d2e;
+    --border: #1e2a40;
+    --accent: #3b82f6;
+    --accent2: #10b981;
+    --accent3: #f59e0b;
+    --accent4: #ef4444;
+    --accent5: #8b5cf6;
+    --text: #e2e8f0;
+    --muted: #64748b;
+    --dim: #334155;
+    --product-color: #3b82f6;
+    --sub-color: #10b981;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Inter', sans-serif;
+    min-height: 100vh;
+    font-size: 14px;
+  }
+
+  /* LAYOUT */
+  .shell { display: flex; min-height: 100vh; }
+
+  /* SIDEBAR */
+  .sidebar {
+    width: 240px;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    position: fixed;
+    top: 0; left: 0; bottom: 0;
+    z-index: 100;
+  }
+
+  .logo {
+    padding: 24px 20px 20px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .logo-mark {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--accent);
+    letter-spacing: -0.5px;
+  }
+
+  .logo-sub {
+    font-size: 10px;
+    color: var(--muted);
+    margin-top: 2px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+  }
+
+  nav { padding: 16px 12px; flex: 1; }
+
+  .nav-group { margin-bottom: 24px; }
+
+  .nav-label {
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    padding: 0 8px;
+    margin-bottom: 8px;
+  }
+
+  .nav-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 8px;
+    border-radius: 8px;
+    cursor: pointer;
+    color: var(--muted);
+    transition: all 0.15s;
+    margin-bottom: 2px;
+  }
+
+  .nav-item:hover { background: var(--card); color: var(--text); }
+  .nav-item.active { background: rgba(59,130,246,0.15); color: var(--accent); }
+
+  .nav-icon { font-size: 16px; width: 20px; text-align: center; }
+
+  .main { margin-left: 240px; flex: 1; }
+
+  .topbar {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 0 28px;
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 90;
+  }
+
+  .page-title { font-size: 16px; font-weight: 600; }
+
+  .topbar-actions { display: flex; gap: 10px; align-items: center; }
+
+  .btn {
+    padding: 8px 16px;
+    border-radius: 8px;
+    border: none;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 500;
+    font-family: 'Inter', sans-serif;
+    transition: all 0.15s;
+  }
+
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-primary:hover { background: #2563eb; }
+  .btn-ghost { background: var(--card); color: var(--text); border: 1px solid var(--border); }
+  .btn-ghost:hover { background: var(--border); }
+  .btn-danger { background: var(--accent4); color: #fff; }
+  .btn-success { background: var(--accent2); color: #fff; }
+  .btn-sm { padding: 6px 12px; font-size: 12px; }
+
+  .content { padding: 28px; }
+
+  /* SECTIONS */
+  .section { display: none; }
+  .section.active { display: block; }
+
+  /* KPI GRID */
+  .kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+
+  .kpi-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .kpi-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+  }
+
+  .kpi-card.blue::before { background: var(--accent); }
+  .kpi-card.green::before { background: var(--accent2); }
+  .kpi-card.amber::before { background: var(--accent3); }
+  .kpi-card.red::before { background: var(--accent4); }
+  .kpi-card.purple::before { background: var(--accent5); }
+
+  .kpi-label { font-size: 11px; color: var(--muted); letter-spacing: 0.5px; margin-bottom: 8px; }
+  .kpi-value { font-family: 'JetBrains Mono', monospace; font-size: 24px; font-weight: 600; }
+  .kpi-value.blue { color: var(--accent); }
+  .kpi-value.green { color: var(--accent2); }
+  .kpi-value.amber { color: var(--accent3); }
+  .kpi-value.red { color: var(--accent4); }
+  .kpi-value.purple { color: var(--accent5); }
+  .kpi-sub { font-size: 11px; color: var(--muted); margin-top: 6px; }
+  .kpi-change { font-size: 11px; margin-top: 4px; }
+  .kpi-change.up { color: var(--accent2); }
+  .kpi-change.down { color: var(--accent4); }
+
+  /* CHARTS */
+  .charts-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+
+  .charts-row.triple { grid-template-columns: 1fr 1fr 1fr; }
+  .charts-row.full { grid-template-columns: 1fr; }
+
+  .chart-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+  }
+
+  .chart-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+  }
+
+  .chart-title { font-size: 13px; font-weight: 600; }
+  .chart-sub { font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+  canvas { max-width: 100%; }
+
+  /* TABLES */
+  .table-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    margin-bottom: 16px;
+  }
+
+  .table-header {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .table-title { font-size: 13px; font-weight: 600; }
+
+  table { width: 100%; border-collapse: collapse; }
+
+  th {
+    text-align: left;
+    padding: 10px 16px;
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    border-bottom: 1px solid var(--border);
+    background: rgba(255,255,255,0.02);
+  }
+
+  td {
+    padding: 12px 16px;
+    border-bottom: 1px solid rgba(30,42,64,0.5);
+    font-size: 13px;
+  }
+
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: rgba(255,255,255,0.02); }
+
+  .badge {
+    padding: 3px 8px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 500;
+  }
+
+  .badge-green { background: rgba(16,185,129,0.15); color: var(--accent2); }
+  .badge-blue { background: rgba(59,130,246,0.15); color: var(--accent); }
+  .badge-amber { background: rgba(245,158,11,0.15); color: var(--accent3); }
+  .badge-red { background: rgba(239,68,68,0.15); color: var(--accent4); }
+  .badge-purple { background: rgba(139,92,246,0.15); color: var(--accent5); }
+
+  /* FORMS */
+  .form-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 16px;
+  }
+
+  .form-title { font-size: 15px; font-weight: 600; margin-bottom: 20px; }
+
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .form-grid.triple { grid-template-columns: 1fr 1fr 1fr; }
+  .form-grid.full { grid-template-columns: 1fr; }
+  .form-span { grid-column: 1 / -1; }
+
+  .form-group { display: flex; flex-direction: column; gap: 6px; }
+
+  label { font-size: 12px; color: var(--muted); font-weight: 500; }
+
+  input, select, textarea {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 12px;
+    color: var(--text);
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    transition: border-color 0.15s;
+    width: 100%;
+  }
+
+  input:focus, select:focus, textarea:focus {
+    outline: none;
+    border-color: var(--accent);
+  }
+
+  input[type="date"] { color-scheme: dark; }
+
+  textarea { resize: vertical; min-height: 80px; }
+
+  .form-actions { display: flex; gap: 10px; margin-top: 20px; justify-content: flex-end; }
+
+  /* TABS */
+  .tabs { display: flex; gap: 4px; margin-bottom: 20px; border-bottom: 1px solid var(--border); }
+
+  .tab {
+    padding: 10px 16px;
+    cursor: pointer;
+    font-size: 13px;
+    color: var(--muted);
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+    transition: all 0.15s;
+  }
+
+  .tab:hover { color: var(--text); }
+  .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+  /* FUNNEL */
+  .funnel { display: flex; flex-direction: column; gap: 8px; }
+
+  .funnel-step {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .funnel-bar-wrap { flex: 1; height: 36px; background: var(--surface); border-radius: 6px; overflow: hidden; }
+
+  .funnel-bar {
+    height: 100%;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    padding-left: 12px;
+    font-size: 12px;
+    font-weight: 500;
+    color: #fff;
+    transition: width 0.5s ease;
+  }
+
+  .funnel-label { width: 120px; font-size: 12px; color: var(--muted); text-align: right; }
+  .funnel-num { width: 60px; font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--text); text-align: right; }
+  .funnel-pct { width: 50px; font-size: 11px; color: var(--muted); }
+
+  /* NOTIFICATION */
+  .toast {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    background: var(--accent2);
+    color: #fff;
+    padding: 12px 20px;
+    border-radius: 8px;
+    font-size: 13px;
+    z-index: 999;
+    transform: translateY(100px);
+    opacity: 0;
+    transition: all 0.3s;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+  }
+
+  .toast.show { transform: translateY(0); opacity: 1; }
+
+  /* PROGRESS */
+  .progress-bar-wrap { background: var(--surface); border-radius: 4px; height: 6px; overflow: hidden; margin-top: 4px; }
+  .progress-bar { height: 100%; border-radius: 4px; transition: width 0.5s; }
+
+  /* METRIC ROW */
+  .metric-row { display: flex; gap: 8px; align-items: center; margin-bottom: 12px; }
+  .metric-row-label { flex: 1; font-size: 12px; color: var(--muted); }
+  .metric-row-val { font-family: 'JetBrains Mono', monospace; font-size: 13px; }
+
+  /* DIVIDER */
+  .divider { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
+
+  /* EMPTY */
+  .empty { text-align: center; padding: 48px; color: var(--muted); }
+  .empty-icon { font-size: 40px; margin-bottom: 12px; }
+  .empty-text { font-size: 13px; }
+
+  /* DELETE BTN */
+  .delete-btn { background: none; border: none; cursor: pointer; color: var(--muted); font-size: 14px; padding: 4px; border-radius: 4px; }
+  .delete-btn:hover { color: var(--accent4); background: rgba(239,68,68,0.1); }
+
+  /* RESPONSIVE */
+  @media (max-width: 900px) {
+    .charts-row, .charts-row.triple { grid-template-columns: 1fr; }
+    .form-grid, .form-grid.triple { grid-template-columns: 1fr; }
+  }
+
+  @media (max-width: 700px) {
+    .sidebar { display: none; }
+    .main { margin-left: 0; }
+    .kpi-grid { grid-template-columns: 1fr 1fr; }
+  }
+
+  .section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+  }
+
+  .section-title { font-size: 18px; font-weight: 700; }
+  .section-sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
+
+  select option { background: var(--surface); }
+
+  .num { font-family: 'JetBrains Mono', monospace; }
+  .green { color: var(--accent2); }
+  .red { color: var(--accent4); }
+  .blue { color: var(--accent); }
+  .amber { color: var(--accent3); }
+</style>
+</head>
+<body>
+
+<div class="shell">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="logo">
+      <div class="logo-mark">BizFlow</div>
+      <div class="logo-sub">Business Intelligence</div>
+    </div>
+    <nav>
+      <div class="nav-group">
+        <div class="nav-label">Overview</div>
+        <div class="nav-item active" onclick="navigate('dashboard')">
+          <span class="nav-icon">📊</span> Dashboard
+        </div>
+        <div class="nav-item" onclick="navigate('pnl')">
+          <span class="nav-icon">💰</span> P&L Summary
+        </div>
+      </div>
+      <div class="nav-group">
+        <div class="nav-label">Revenue Streams</div>
+        <div class="nav-item" onclick="navigate('product')">
+          <span class="nav-icon">📦</span> Product Sales
+        </div>
+        <div class="nav-item" onclick="navigate('subscription')">
+          <span class="nav-icon">🔄</span> Subscriptions
+        </div>
+      </div>
+      <div class="nav-group">
+        <div class="nav-label">Costs & Customers</div>
+        <div class="nav-item" onclick="navigate('expenses')">
+          <span class="nav-icon">💸</span> Expenses
+        </div>
+        <div class="nav-item" onclick="navigate('customers')">
+          <span class="nav-icon">👥</span> Customers
+        </div>
+        <div class="nav-item" onclick="navigate('funnel')">
+          <span class="nav-icon">🎯</span> Funnel & CAC
+        </div>
+      </div>
+      <div class="nav-group">
+        <div class="nav-label">Analytics</div>
+        <div class="nav-item" onclick="navigate('charts')">
+          <span class="nav-icon">📈</span> Charts
+        </div>
+      </div>
+    </nav>
+  </aside>
+
+  <!-- MAIN CONTENT -->
+  <main class="main">
+    <div class="topbar">
+      <div class="page-title" id="pageTitle">Dashboard</div>
+      <div class="topbar-actions">
+        <button class="btn btn-ghost btn-sm" onclick="exportData()">⬇ Export CSV</button>
+        <button class="btn btn-primary btn-sm" onclick="navigate('product'); setTimeout(()=>document.getElementById('addProductModal').style.display='flex',100)">+ Add Sale</button>
+      </div>
+    </div>
+
+    <div class="content">
+
+      <!-- ============ DASHBOARD ============ -->
+      <div class="section active" id="sec-dashboard">
+        <div class="kpi-grid" id="kpiGrid"></div>
+
+        <div class="charts-row">
+          <div class="chart-card">
+            <div class="chart-header">
+              <div>
+                <div class="chart-title">Monthly Revenue</div>
+                <div class="chart-sub">Product + Subscription combined</div>
+              </div>
+            </div>
+            <canvas id="revenueChart" height="200"></canvas>
+          </div>
+          <div class="chart-card">
+            <div class="chart-header">
+              <div>
+                <div class="chart-title">Profit vs Spend</div>
+                <div class="chart-sub">Monthly comparison</div>
+              </div>
+            </div>
+            <canvas id="profitChart" height="200"></canvas>
+          </div>
+        </div>
+
+        <div class="charts-row">
+          <div class="chart-card">
+            <div class="chart-header">
+              <div>
+                <div class="chart-title">Revenue Breakdown</div>
+                <div class="chart-sub">By stream</div>
+              </div>
+            </div>
+            <canvas id="pieChart" height="220"></canvas>
+          </div>
+          <div class="chart-card">
+            <div class="chart-header">
+              <div>
+                <div class="chart-title">Customer Acquisition</div>
+                <div class="chart-sub">New customers per month</div>
+              </div>
+            </div>
+            <canvas id="acquisitionChart" height="220"></canvas>
+          </div>
+        </div>
+
+        <div class="table-card">
+          <div class="table-header">
+            <span class="table-title">Recent Transactions</span>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Type</th>
+                <th>Customer</th>
+                <th>Amount</th>
+                <th>Cost</th>
+                <th>Profit</th>
+                <th>Margin</th>
+              </tr>
+            </thead>
+            <tbody id="recentTransactions">
+              <tr><td colspan="7"><div class="empty"><div class="empty-text">No transactions yet. Add a sale to get started.</div></div></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ============ P&L ============ -->
+      <div class="section" id="sec-pnl">
+        <div class="section-header">
+          <div>
+            <div class="section-title">Profit & Loss Summary</div>
+            <div class="section-sub">Complete financial picture</div>
+          </div>
+          <select id="pnlPeriod" onchange="renderPnL()" style="width:160px">
+            <option value="all">All Time</option>
+            <option value="thisMonth">This Month</option>
+            <option value="lastMonth">Last Month</option>
+            <option value="thisYear">This Year</option>
+          </select>
+        </div>
+
+        <div class="kpi-grid" id="pnlKpis"></div>
+
+        <div class="charts-row">
+          <div class="chart-card">
+            <div class="chart-header"><div class="chart-title">Monthly P&L Trend</div></div>
+            <canvas id="pnlChart" height="220"></canvas>
+          </div>
+          <div class="chart-card">
+            <div class="chart-header"><div class="chart-title">Expense Breakdown</div></div>
+            <canvas id="expensePieChart" height="220"></canvas>
+          </div>
+        </div>
+
+        <div class="form-card" id="pnlTable"></div>
+      </div>
+
+      <!-- ============ PRODUCT SALES ============ -->
+      <div class="section" id="sec-product">
+        <div class="section-header">
+          <div>
+            <div class="section-title">Product Sales — ₹2,999</div>
+            <div class="section-sub">DTC physical/digital product tracking</div>
+          </div>
+          <button class="btn btn-primary" onclick="document.getElementById('addProductModal').style.display='flex'">+ Add Sale</button>
+        </div>
+
+        <div class="kpi-grid" id="productKpis"></div>
+
+        <div class="charts-row">
+          <div class="chart-card">
+            <div class="chart-header"><div class="chart-title">Units Sold Per Month</div></div>
+            <canvas id="productSalesChart" height="200"></canvas>
+          </div>
+          <div class="chart-card">
+            <div class="chart-header"><div class="chart-title">Product Revenue vs Cost</div></div>
+            <canvas id="productProfitChart" height="200"></canvas>
+          </div>
+        </div>
+
+        <div class="table-card">
+          <div class="table-header">
+            <span class="table-title">Sales Records</span>
+            <input type="text" placeholder="Search..." oninput="filterTable('productTable', this.value)" style="width:200px; padding:6px 10px; font-size:12px">
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Order ID</th>
+                <th>Customer</th>
+                <th>Units</th>
+                <th>Revenue</th>
+                <th>COGS</th>
+                <th>Profit</th>
+                <th>Channel</th>
+                <th>Status</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="productTable"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ============ SUBSCRIPTION ============ -->
+      <div class="section" id="sec-subscription">
+        <div class="section-header">
+          <div>
+            <div class="section-title">App Subscriptions — ₹99/mo</div>
+            <div class="section-sub">Premium feature subscription tracking</div>
+          </div>
+          <button class="btn btn-primary" onclick="document.getElementById('addSubModal').style.display='flex'">+ Add Subscriber</button>
+        </div>
+
+        <div class="kpi-grid" id="subKpis"></div>
+
+        <div class="charts-row">
+          <div class="chart-card">
+            <div class="chart-header"><div class="chart-title">MRR Growth</div></div>
+            <canvas id="mrrChart" height="200"></canvas>
+          </div>
+          <div class="chart-card">
+            <div class="chart-header"><div class="chart-title">Active vs Churned</div></div>
+            <canvas id="churnChart" height="200"></canvas>
+          </div>
+        </div>
+
+        <div class="table-card">
+          <div class="table-header">
+            <span class="table-title">Subscribers</span>
+            <input type="text" placeholder="Search..." oninput="filterTable('subTable', this.value)" style="width:200px; padding:6px 10px; font-size:12px">
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th>Start Date</th>
+                <th>Customer</th>
+                <th>Plan</th>
+                <th>Months Active</th>
+                <th>Total Paid</th>
+                <th>Status</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="subTable"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ============ EXPENSES ============ -->
+      <div class="section" id="sec-expenses">
+        <div class="section-header">
+          <div>
+            <div class="section-title">Expenses & Spend</div>
+            <div class="section-sub">Track all business costs</div>
+          </div>
+          <button class="btn btn-primary" onclick="document.getElementById('addExpenseModal').style.display='flex'">+ Add Expense</button>
+        </div>
+
+        <div class="kpi-grid" id="expenseKpis"></div>
+
+        <div class="charts-row">
+          <div class="chart-card">
+            <div class="chart-header"><div class="chart-title">Monthly Spend Trend</div></div>
+            <canvas id="spendChart" height="200"></canvas>
+          </div>
+          <div class="chart-card">
+            <div class="chart-header"><div class="chart-title">Spend by Category</div></div>
+            <canvas id="spendCatChart" height="200"></canvas>
+          </div>
+        </div>
+
+        <div class="table-card">
+          <div class="table-header">
+            <span class="table-title">Expense Records</span>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Category</th>
+                <th>Description</th>
+                <th>Amount</th>
+                <th>Vendor</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="expenseTable"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ============ CUSTOMERS ============ -->
+      <div class="section" id="sec-customers">
+        <div class="section-header">
+          <div>
+            <div class="section-title">Customers</div>
+            <div class="section-sub">Customer database and LTV</div>
+          </div>
+          <button class="btn btn-primary" onclick="document.getElementById('addCustomerModal').style.display='flex'">+ Add Customer</button>
+        </div>
+
+        <div class="kpi-grid" id="customerKpis"></div>
+
+        <div class="table-card">
+          <div class="table-header">
+            <span class="table-title">Customer List</span>
+            <input type="text" placeholder="Search..." oninput="filterTable('customerTable', this.value)" style="width:200px; padding:6px 10px; font-size:12px">
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Phone</th>
+                <th>City</th>
+                <th>Product</th>
+                <th>Subscription</th>
+                <th>Total LTV</th>
+                <th>Source</th>
+                <th>Joined</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="customerTable"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ============ FUNNEL ============ -->
+      <div class="section" id="sec-funnel">
+        <div class="section-header">
+          <div>
+            <div class="section-title">Customer Funnel & CAC</div>
+            <div class="section-sub">Acquisition rates and cost analysis</div>
+          </div>
+          <button class="btn btn-primary" onclick="document.getElementById('addFunnelModal').style.display='flex'">+ Update Funnel</button>
+        </div>
+
+        <div class="kpi-grid" id="funnelKpis"></div>
+
+        <div class="charts-row">
+          <div class="chart-card" style="grid-column: 1">
+            <div class="chart-header"><div class="chart-title">Conversion Funnel</div></div>
+            <div class="funnel" id="funnelViz" style="margin-top: 8px; padding: 8px 0;"></div>
+          </div>
+          <div class="chart-card">
+            <div class="chart-header"><div class="chart-title">CAC Over Time</div></div>
+            <canvas id="cacChart" height="200"></canvas>
+          </div>
+        </div>
+
+        <div class="table-card">
+          <div class="table-header"><span class="table-title">Funnel Records (Monthly)</span></div>
+          <table>
+            <thead>
+              <tr>
+                <th>Month</th>
+                <th>Impressions</th>
+                <th>Clicks</th>
+                <th>Leads</th>
+                <th>Trials</th>
+                <th>Conversions</th>
+                <th>Ad Spend</th>
+                <th>CAC</th>
+                <th>CTR</th>
+                <th>CVR</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="funnelTable"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ============ CHARTS ============ -->
+      <div class="section" id="sec-charts">
+        <div class="section-header">
+          <div>
+            <div class="section-title">Analytics & Charts</div>
+            <div class="section-sub">All visual data representations</div>
+          </div>
+        </div>
+
+        <div class="charts-row">
+          <div class="chart-card">
+            <div class="chart-header"><div class="chart-title">Revenue vs Profit Margin %</div></div>
+            <canvas id="marginChart" height="220"></canvas>
+          </div>
+          <div class="chart-card">
+            <div class="chart-header"><div class="chart-title">LTV vs CAC Ratio</div></div>
+            <canvas id="ltvCacChart" height="220"></canvas>
+          </div>
+        </div>
+
+        <div class="charts-row">
+          <div class="chart-card">
+            <div class="chart-header"><div class="chart-title">Subscription MRR vs Churn Rate</div></div>
+            <canvas id="mrrChurnChart" height="220"></canvas>
+          </div>
+          <div class="chart-card">
+            <div class="chart-header"><div class="chart-title">Cumulative Profit</div></div>
+            <canvas id="cumulativeChart" height="220"></canvas>
+          </div>
+        </div>
+
+        <div class="charts-row full">
+          <div class="chart-card">
+            <div class="chart-header"><div class="chart-title">Channel-wise Sales Performance</div></div>
+            <canvas id="channelChart" height="150"></canvas>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- end content -->
+  </main>
+</div><!-- end shell -->
+
+<!-- ============ MODALS ============ -->
+
+<!-- ADD PRODUCT SALE -->
+<div id="addProductModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.7); z-index:200; align-items:center; justify-content:center;">
+  <div style="background:var(--card); border:1px solid var(--border); border-radius:16px; padding:28px; width:540px; max-width:95vw; max-height:90vh; overflow-y:auto;">
+    <div style="font-size:15px; font-weight:600; margin-bottom:20px;">📦 Add Product Sale</div>
+    <div class="form-grid">
+      <div class="form-group">
+        <label>Date</label>
+        <input type="date" id="ps_date">
+      </div>
+      <div class="form-group">
+        <label>Order ID</label>
+        <input type="text" id="ps_orderId" placeholder="ORD-001">
+      </div>
+      <div class="form-group form-span">
+        <label>Customer Name</label>
+        <input type="text" id="ps_customer" placeholder="Customer name">
+      </div>
+      <div class="form-group">
+        <label>Units Sold</label>
+        <input type="number" id="ps_units" value="1" min="1">
+      </div>
+      <div class="form-group">
+        <label>Selling Price per Unit (₹)</label>
+        <input type="number" id="ps_price" value="2999">
+      </div>
+      <div class="form-group">
+        <label>COGS per Unit (₹)</label>
+        <input type="number" id="ps_cogs" placeholder="Cost of goods">
+      </div>
+      <div class="form-group">
+        <label>Shipping Cost (₹)</label>
+        <input type="number" id="ps_shipping" value="0">
+      </div>
+      <div class="form-group">
+        <label>Platform Fee (₹)</label>
+        <input type="number" id="ps_fee" value="0">
+      </div>
+      <div class="form-group">
+        <label>Sales Channel</label>
+        <select id="ps_channel">
+          <option>Website</option>
+          <option>Instagram</option>
+          <option>WhatsApp</option>
+          <option>Amazon</option>
+          <option>Flipkart</option>
+          <option>Other</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Status</label>
+        <select id="ps_status">
+          <option>Delivered</option>
+          <option>Processing</option>
+          <option>Shipped</option>
+          <option>Returned</option>
+          <option>Refunded</option>
+        </select>
+      </div>
+      <div class="form-group form-span">
+        <label>Notes</label>
+        <textarea id="ps_notes" placeholder="Any notes..."></textarea>
+      </div>
+    </div>
+    <div class="form-actions">
+      <button class="btn btn-ghost" onclick="closeModal('addProductModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveProductSale()">Save Sale</button>
+    </div>
+  </div>
+</div>
+
+<!-- ADD SUBSCRIBER -->
+<div id="addSubModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.7); z-index:200; align-items:center; justify-content:center;">
+  <div style="background:var(--card); border:1px solid var(--border); border-radius:16px; padding:28px; width:480px; max-width:95vw;">
+    <div style="font-size:15px; font-weight:600; margin-bottom:20px;">🔄 Add Subscriber</div>
+    <div class="form-grid">
+      <div class="form-group">
+        <label>Start Date</label>
+        <input type="date" id="sub_date">
+      </div>
+      <div class="form-group">
+        <label>Customer Name</label>
+        <input type="text" id="sub_customer" placeholder="Name">
+      </div>
+      <div class="form-group">
+        <label>Monthly Fee (₹)</label>
+        <input type="number" id="sub_fee" value="99">
+      </div>
+      <div class="form-group">
+        <label>Plan Duration (months)</label>
+        <input type="number" id="sub_months" value="1" min="1">
+      </div>
+      <div class="form-group form-span">
+        <label>Status</label>
+        <select id="sub_status">
+          <option>Active</option>
+          <option>Churned</option>
+          <option>Paused</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-actions">
+      <button class="btn btn-ghost" onclick="closeModal('addSubModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveSubscriber()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- ADD EXPENSE -->
+<div id="addExpenseModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.7); z-index:200; align-items:center; justify-content:center;">
+  <div style="background:var(--card); border:1px solid var(--border); border-radius:16px; padding:28px; width:520px; max-width:95vw;">
+    <div style="font-size:15px; font-weight:600; margin-bottom:20px;">💸 Add Expense</div>
+    <div class="form-grid">
+      <div class="form-group">
+        <label>Date</label>
+        <input type="date" id="exp_date">
+      </div>
+      <div class="form-group">
+        <label>Amount (₹)</label>
+        <input type="number" id="exp_amount" placeholder="0">
+      </div>
+      <div class="form-group">
+        <label>Category</label>
+        <select id="exp_category">
+          <option>Marketing & Ads</option>
+          <option>COGS / Manufacturing</option>
+          <option>Shipping & Logistics</option>
+          <option>Salaries</option>
+          <option>Technology / SaaS</option>
+          <option>Operations</option>
+          <option>Office & Admin</option>
+          <option>R&D</option>
+          <option>Legal & Compliance</option>
+          <option>Other</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Vendor / Platform</label>
+        <input type="text" id="exp_vendor" placeholder="Google Ads, AWS, etc.">
+      </div>
+      <div class="form-group form-span">
+        <label>Description</label>
+        <input type="text" id="exp_desc" placeholder="What was this for?">
+      </div>
+    </div>
+    <div class="form-actions">
+      <button class="btn btn-ghost" onclick="closeModal('addExpenseModal')">Cancel</button>
+      <button class="btn btn-danger" onclick="saveExpense()">Save Expense</button>
+    </div>
+  </div>
+</div>
+
+<!-- ADD CUSTOMER -->
+<div id="addCustomerModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.7); z-index:200; align-items:center; justify-content:center;">
+  <div style="background:var(--card); border:1px solid var(--border); border-radius:16px; padding:28px; width:540px; max-width:95vw;">
+    <div style="font-size:15px; font-weight:600; margin-bottom:20px;">👥 Add Customer</div>
+    <div class="form-grid">
+      <div class="form-group">
+        <label>Full Name</label>
+        <input type="text" id="cust_name" placeholder="Name">
+      </div>
+      <div class="form-group">
+        <label>Phone</label>
+        <input type="tel" id="cust_phone" placeholder="+91 XXXXX XXXXX">
+      </div>
+      <div class="form-group">
+        <label>Email</label>
+        <input type="email" id="cust_email" placeholder="email@example.com">
+      </div>
+      <div class="form-group">
+        <label>City</label>
+        <input type="text" id="cust_city" placeholder="City">
+      </div>
+      <div class="form-group">
+        <label>Purchased Product?</label>
+        <select id="cust_product">
+          <option value="yes">Yes</option>
+          <option value="no">No</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Has Subscription?</label>
+        <select id="cust_sub">
+          <option value="yes">Yes</option>
+          <option value="no">No</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Acquisition Source</label>
+        <select id="cust_source">
+          <option>Instagram</option>
+          <option>Facebook Ads</option>
+          <option>Google Ads</option>
+          <option>Referral</option>
+          <option>Organic</option>
+          <option>WhatsApp</option>
+          <option>Other</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Join Date</label>
+        <input type="date" id="cust_date">
+      </div>
+    </div>
+    <div class="form-actions">
+      <button class="btn btn-ghost" onclick="closeModal('addCustomerModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveCustomer()">Save Customer</button>
+    </div>
+  </div>
+</div>
+
+<!-- ADD FUNNEL DATA -->
+<div id="addFunnelModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.7); z-index:200; align-items:center; justify-content:center;">
+  <div style="background:var(--card); border:1px solid var(--border); border-radius:16px; padding:28px; width:580px; max-width:95vw;">
+    <div style="font-size:15px; font-weight:600; margin-bottom:20px;">🎯 Add Funnel Data</div>
+    <div class="form-grid triple">
+      <div class="form-group">
+        <label>Month</label>
+        <input type="month" id="fn_month">
+      </div>
+      <div class="form-group">
+        <label>Impressions</label>
+        <input type="number" id="fn_impressions" placeholder="10000">
+      </div>
+      <div class="form-group">
+        <label>Clicks</label>
+        <input type="number" id="fn_clicks" placeholder="500">
+      </div>
+      <div class="form-group">
+        <label>Leads</label>
+        <input type="number" id="fn_leads" placeholder="100">
+      </div>
+      <div class="form-group">
+        <label>Trials / Demos</label>
+        <input type="number" id="fn_trials" placeholder="30">
+      </div>
+      <div class="form-group">
+        <label>Conversions (Paid)</label>
+        <input type="number" id="fn_conversions" placeholder="10">
+      </div>
+      <div class="form-group form-span">
+        <label>Ad Spend for This Month (₹)</label>
+        <input type="number" id="fn_adspend" placeholder="5000">
+      </div>
+    </div>
+    <div class="form-actions">
+      <button class="btn btn-ghost" onclick="closeModal('addFunnelModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveFunnel()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ============================================================
+// DATA LAYER — localStorage persistence
+// ============================================================
+const DB = {
+  get(key) { try { return JSON.parse(localStorage.getItem('biz_' + key)) || []; } catch { return []; } },
+  set(key, val) { localStorage.setItem('biz_' + key, JSON.stringify(val)); },
+  push(key, item) {
+    const arr = this.get(key);
+    arr.push({ ...item, id: Date.now() + Math.random() });
+    this.set(key, arr);
+    return arr;
+  },
+  remove(key, id) {
+    const arr = this.get(key).filter(i => i.id !== id);
+    this.set(key, arr);
+    return arr;
+  }
+};
+
+// ============================================================
+// NAVIGATION
+// ============================================================
+const sections = ['dashboard','pnl','product','subscription','expenses','customers','funnel','charts'];
+const titles = { dashboard:'Dashboard', pnl:'P&L Summary', product:'Product Sales', subscription:'Subscriptions', expenses:'Expenses', customers:'Customers', funnel:'Funnel & CAC', charts:'Analytics' };
+
+function navigate(id) {
+  sections.forEach(s => {
+    document.getElementById('sec-'+s).classList.remove('active');
+    document.querySelectorAll('.nav-item').forEach(n => {
+      if (n.getAttribute('onclick') && n.getAttribute('onclick').includes(s)) n.classList.remove('active');
+    });
+  });
+  document.getElementById('sec-'+id).classList.add('active');
+  document.getElementById('pageTitle').textContent = titles[id];
+  document.querySelectorAll('.nav-item').forEach(n => {
+    if (n.getAttribute('onclick') && n.getAttribute('onclick').includes("'"+id+"'")) n.classList.add('active');
+  });
+  renderAll();
+}
+
+// ============================================================
+// HELPERS
+// ============================================================
+const fmt = n => '₹' + Number(n||0).toLocaleString('en-IN');
+const pct = (a,b) => b ? ((a/b)*100).toFixed(1)+'%' : '0%';
+
+function toast(msg, color='var(--accent2)') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.style.background = color;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+
+function filterTable(tbodyId, q) {
+  const rows = document.getElementById(tbodyId).querySelectorAll('tr');
+  rows.forEach(r => {
+    r.style.display = r.textContent.toLowerCase().includes(q.toLowerCase()) ? '' : 'none';
+  });
+}
+
+function getMonthLabel(dateStr) {
+  if (!dateStr) return 'N/A';
+  const d = new Date(dateStr);
+  return d.toLocaleString('default', { month: 'short', year: '2-digit' });
+}
+
+function getLast6Months() {
+  const months = [];
+  for (let i = 5; i >= 0; i--) {
+    const d = new Date();
+    d.setMonth(d.getMonth() - i);
+    months.push(d.toISOString().slice(0,7));
+  }
+  return months;
+}
+
+function groupByMonth(arr, dateKey, valueKey) {
+  const months = getLast6Months();
+  return months.map(m => {
+    const items = arr.filter(i => (i[dateKey]||'').startsWith(m));
+    return items.reduce((s, i) => s + Number(i[valueKey]||0), 0);
+  });
+}
+
+// ============================================================
+// CHART REGISTRY
+// ============================================================
+const charts = {};
+function makeChart(id, config) {
+  if (charts[id]) charts[id].destroy();
+  const ctx = document.getElementById(id);
+  if (!ctx) return;
+  charts[id] = new Chart(ctx, config);
+}
+
+const chartDefaults = {
+  plugins: { legend: { labels: { color: '#94a3b8', font: { size: 11 } } } },
+  scales: {
+    x: { ticks: { color: '#64748b', font: { size: 11 } }, grid: { color: '#1e2a40' } },
+    y: { ticks: { color: '#64748b', font: { size: 11 } }, grid: { color: '#1e2a40' } }
+  }
+};
+
+const months6 = getLast6Months().map(m => {
+  const [y, mo] = m.split('-');
+  return new Date(y, mo-1).toLocaleString('default', {month:'short'}) + "'" + y.slice(2);
+});
+
+// ============================================================
+// MODALS — SAVE
+// ============================================================
+function setDefaultDate(ids) {
+  const today = new Date().toISOString().slice(0,10);
+  ids.forEach(id => { if (document.getElementById(id)) document.getElementById(id).value = today; });
+}
+
+function saveProductSale() {
+  const units = Number(document.getElementById('ps_units').value)||1;
+  const price = Number(document.getElementById('ps_price').value)||2999;
+  const cogs = Number(document.getElementById('ps_cogs').value)||0;
+  const ship = Number(document.getElementById('ps_shipping').value)||0;
+  const fee = Number(document.getElementById('ps_fee').value)||0;
+  const rev = units * price;
+  const totalCost = (units * cogs) + ship + fee;
+  const profit = rev - totalCost;
+
+  const sale = {
+    date: document.getElementById('ps_date').value || new Date().toISOString().slice(0,10),
+    orderId: document.getElementById('ps_orderId').value || 'ORD-' + Date.now(),
+    customer: document.getElementById('ps_customer').value || 'Unknown',
+    units, price, cogs, shipping: ship, fee,
+    revenue: rev, totalCost, profit,
+    channel: document.getElementById('ps_channel').value,
+    status: document.getElementById('ps_status').value,
+    notes: document.getElementById('ps_notes').value
+  };
+
+  DB.push('sales', sale);
+  closeModal('addProductModal');
+  toast('✅ Sale saved!');
+  renderAll();
+}
+
+function saveSubscriber() {
+  const fee = Number(document.getElementById('sub_fee').value)||99;
+  const months = Number(document.getElementById('sub_months').value)||1;
+  const sub = {
+    date: document.getElementById('sub_date').value || new Date().toISOString().slice(0,10),
+    customer: document.getElementById('sub_customer').value || 'Unknown',
+    fee, months,
+    total: fee * months,
+    status: document.getElementById('sub_status').value
+  };
+  DB.push('subs', sub);
+  closeModal('addSubModal');
+  toast('✅ Subscriber saved!');
+  renderAll();
+}
+
+function saveExpense() {
+  const exp = {
+    date: document.getElementById('exp_date').value || new Date().toISOString().slice(0,10),
+    amount: Number(document.getElementById('exp_amount').value)||0,
+    category: document.getElementById('exp_category').value,
+    vendor: document.getElementById('exp_vendor').value,
+    desc: document.getElementById('exp_desc').value
+  };
+  DB.push('expenses', exp);
+  closeModal('addExpenseModal');
+  toast('✅ Expense saved!');
+  renderAll();
+}
+
+function saveCustomer() {
+  const hasProd = document.getElementById('cust_product').value === 'yes';
+  const hasSub = document.getElementById('cust_sub').value === 'yes';
+  const ltv = (hasProd ? 2999 : 0) + (hasSub ? 99 : 0);
+  const cust = {
+    name: document.getElementById('cust_name').value || 'Unknown',
+    phone: document.getElementById('cust_phone').value,
+    email: document.getElementById('cust_email').value,
+    city: document.getElementById('cust_city').value,
+    product: hasProd, sub: hasSub, ltv,
+    source: document.getElementById('cust_source').value,
+    date: document.getElementById('cust_date').value || new Date().toISOString().slice(0,10)
+  };
+  DB.push('customers', cust);
+  closeModal('addCustomerModal');
+  toast('✅ Customer saved!');
+  renderAll();
+}
+
+function saveFunnel() {
+  const imp = Number(document.getElementById('fn_impressions').value)||0;
+  const clk = Number(document.getElementById('fn_clicks').value)||0;
+  const leads = Number(document.getElementById('fn_leads').value)||0;
+  const trials = Number(document.getElementById('fn_trials').value)||0;
+  const conv = Number(document.getElementById('fn_conversions').value)||0;
+  const spend = Number(document.getElementById('fn_adspend').value)||0;
+  const fn = {
+    month: document.getElementById('fn_month').value || new Date().toISOString().slice(0,7),
+    impressions: imp, clicks: clk, leads, trials,
+    conversions: conv, adSpend: spend,
+    ctr: imp ? ((clk/imp)*100).toFixed(2) : 0,
+    cvr: clk ? ((conv/clk)*100).toFixed(2) : 0,
+    cac: conv ? (spend/conv).toFixed(0) : 0
+  };
+  DB.push('funnel', fn);
+  closeModal('addFunnelModal');
+  toast('✅ Funnel data saved!');
+  renderAll();
+}
+
+// ============================================================
+// DELETE
+// ============================================================
+function del(key, id) {
+  DB.remove(key, id);
+  toast('🗑 Deleted', 'var(--accent4)');
+  renderAll();
+}
+
+// ============================================================
+// KPI CARD BUILDER
+// ============================================================
+function kpiCards(container, cards) {
+  document.getElementById(container).innerHTML = cards.map(c => `
+    <div class="kpi-card ${c.color||'blue'}">
+      <div class="kpi-label">${c.label}</div>
+      <div class="kpi-value ${c.color||'blue'}">${c.value}</div>
+      ${c.sub ? `<div class="kpi-sub">${c.sub}</div>` : ''}
+    </div>
+  `).join('');
+}
+
+// ============================================================
+// RENDER DASHBOARD
+// ============================================================
+function renderDashboard() {
+  const sales = DB.get('sales');
+  const subs = DB.get('subs');
+  const exps = DB.get('expenses');
+  const funnel = DB.get('funnel');
+
+  const totalRevProd = sales.reduce((s,i) => s+(i.revenue||0), 0);
+  const totalRevSub = subs.reduce((s,i) => s+(i.total||0), 0);
+  const totalRev = totalRevProd + totalRevSub;
+  const totalCost = sales.reduce((s,i) => s+(i.totalCost||0), 0);
+  const totalExp = exps.reduce((s,i) => s+(i.amount||0), 0);
+  const totalSpend = totalCost + totalExp;
+  const grossProfit = sales.reduce((s,i) => s+(i.profit||0), 0) + totalRevSub;
+  const netProfit = grossProfit - totalExp;
+  const margin = totalRev ? ((netProfit/totalRev)*100).toFixed(1) : 0;
+  const avgCac = funnel.length ? funnel.reduce((s,i)=>s+Number(i.cac||0),0)/funnel.length : 0;
+  const prodLtv = 2999;
+  const subLtv = 99*12;
+
+  kpiCards('kpiGrid', [
+    { label: 'TOTAL REVENUE', value: fmt(totalRev), color: 'blue', sub: 'Product + Subscription' },
+    { label: 'NET PROFIT', value: fmt(netProfit), color: netProfit >= 0 ? 'green' : 'red', sub: `${margin}% margin` },
+    { label: 'TOTAL SPEND', value: fmt(totalSpend), color: 'amber', sub: 'COGS + Expenses' },
+    { label: 'PRODUCT SALES', value: sales.length, color: 'blue', sub: `₹${totalRevProd.toLocaleString('en-IN')} revenue` },
+    { label: 'ACTIVE SUBS', value: subs.filter(s=>s.status==='Active').length, color: 'purple', sub: `MRR ₹${(subs.filter(s=>s.status==='Active').length*99).toLocaleString('en-IN')}` },
+    { label: 'AVG CAC', value: avgCac ? fmt(avgCac) : '—', color: 'amber', sub: 'Cost per customer' },
+  ]);
+
+  const m6 = getLast6Months();
+
+  // Revenue chart
+  const prodByMonth = m6.map(m => sales.filter(s => s.date.startsWith(m)).reduce((s,i) => s+(i.revenue||0), 0));
+  const subByMonth = m6.map(m => subs.filter(s => s.date.startsWith(m)).reduce((s,i) => s+(i.total||0), 0));
+
+  makeChart('revenueChart', {
+    type: 'bar',
+    data: {
+      labels: months6,
+      datasets: [
+        { label: 'Product ₹', data: prodByMonth, backgroundColor: 'rgba(59,130,246,0.7)', borderRadius: 4 },
+        { label: 'Subscription ₹', data: subByMonth, backgroundColor: 'rgba(16,185,129,0.7)', borderRadius: 4 }
+      ]
+    },
+    options: { ...chartDefaults, plugins: { ...chartDefaults.plugins }, responsive: true, scales: { x: chartDefaults.scales.x, y: { ...chartDefaults.scales.y, stacked: false } } }
+  });
+
+  // Profit chart
+  const profitByMonth = m6.map(m => {
+    const pRev = sales.filter(s => s.date.startsWith(m)).reduce((s,i)=>s+(i.profit||0),0);
+    const sRev = subs.filter(s=>s.date.startsWith(m)).reduce((s,i)=>s+(i.total||0),0);
+    const exp = exps.filter(e=>e.date.startsWith(m)).reduce((s,i)=>s+(i.amount||0),0);
+    return pRev + sRev - exp;
+  });
+  const spendByMonth = m6.map(m => {
+    const c = sales.filter(s=>s.date.startsWith(m)).reduce((s,i)=>s+(i.totalCost||0),0);
+    const e = exps.filter(x=>x.date.startsWith(m)).reduce((s,i)=>s+(i.amount||0),0);
+    return c + e;
+  });
+
+  makeChart('profitChart', {
+    type: 'line',
+    data: {
+      labels: months6,
+      datasets: [
+        { label: 'Net Profit ₹', data: profitByMonth, borderColor: 'var(--accent2)', backgroundColor: 'rgba(16,185,129,0.1)', fill: true, tension: 0.4, pointRadius: 4 },
+        { label: 'Total Spend ₹', data: spendByMonth, borderColor: 'var(--accent4)', backgroundColor: 'rgba(239,68,68,0.05)', fill: true, tension: 0.4, pointRadius: 4 }
+      ]
+    },
+    options: { ...chartDefaults, responsive: true }
+  });
+
+  // Pie
+  makeChart('pieChart', {
+    type: 'doughnut',
+    data: {
+      labels: ['Product Sales', 'Subscriptions'],
+      datasets: [{ data: [totalRevProd, totalRevSub], backgroundColor: ['rgba(59,130,246,0.8)','rgba(16,185,129,0.8)'], borderColor: ['#3b82f6','#10b981'], borderWidth: 2 }]
+    },
+    options: { responsive: true, plugins: { legend: { position: 'bottom', labels: { color: '#94a3b8', padding: 16 } } } }
+  });
+
+  // Acquisition
+  const custByMonth = m6.map(m => DB.get('customers').filter(c => c.date.startsWith(m)).length);
+  makeChart('acquisitionChart', {
+    type: 'bar',
+    data: {
+      labels: months6,
+      datasets: [{ label: 'New Customers', data: custByMonth, backgroundColor: 'rgba(139,92,246,0.7)', borderRadius: 4 }]
+    },
+    options: { ...chartDefaults, responsive: true }
+  });
+
+  // Recent transactions
+  const all = [
+    ...sales.map(s => ({ date: s.date, type: 'Product', customer: s.customer, amount: s.revenue, cost: s.totalCost, profit: s.profit, id: s.id })),
+    ...subs.map(s => ({ date: s.date, type: 'Subscription', customer: s.customer, amount: s.total, cost: 0, profit: s.total, id: s.id }))
+  ].sort((a,b) => new Date(b.date) - new Date(a.date)).slice(0,10);
+
+  const tbody = document.getElementById('recentTransactions');
+  if (!all.length) {
+    tbody.innerHTML = '<tr><td colspan="7"><div class="empty"><div class="empty-text">No data yet</div></div></td></tr>';
+  } else {
+    tbody.innerHTML = all.map(r => `
+      <tr>
+        <td>${r.date}</td>
+        <td><span class="badge ${r.type==='Product'?'badge-blue':'badge-green'}">${r.type}</span></td>
+        <td>${r.customer}</td>
+        <td class="num">${fmt(r.amount)}</td>
+        <td class="num red">${fmt(r.cost)}</td>
+        <td class="num ${r.profit>=0?'green':'red'}">${fmt(r.profit)}</td>
+        <td class="num">${r.amount?pct(r.profit,r.amount):'—'}</td>
+      </tr>
+    `).join('');
+  }
+}
+
+// ============================================================
+// RENDER P&L
+// ============================================================
+function renderPnL() {
+  const period = document.getElementById('pnlPeriod')?.value || 'all';
+  let sales = DB.get('sales');
+  let subs = DB.get('subs');
+  let exps = DB.get('expenses');
+  const today = new Date();
+
+  if (period === 'thisMonth') {
+    const m = today.toISOString().slice(0,7);
+    sales = sales.filter(s => s.date.startsWith(m));
+    subs = subs.filter(s => s.date.startsWith(m));
+    exps = exps.filter(e => e.date.startsWith(m));
+  } else if (period === 'lastMonth') {
+    const d = new Date(today.getFullYear(), today.getMonth()-1);
+    const m = d.toISOString().slice(0,7);
+    sales = sales.filter(s => s.date.startsWith(m));
+    subs = subs.filter(s => s.date.startsWith(m));
+    exps = exps.filter(e => e.date.startsWith(m));
+  } else if (period === 'thisYear') {
+    const y = today.getFullYear();
+    sales = sales.filter(s => s.date.startsWith(y));
+    subs = subs.filter(s => s.date.startsWith(y));
+    exps = exps.filter(e => e.date.startsWith(y));
+  }
+
+  const prodRev = sales.reduce((s,i)=>s+(i.revenue||0), 0);
+  const subRev = subs.reduce((s,i)=>s+(i.total||0), 0);
+  const totalRev = prodRev + subRev;
+  const cogs = sales.reduce((s,i)=>s+(i.totalCost||0), 0);
+  const grossProfit = totalRev - cogs;
+  const totalExp = exps.reduce((s,i)=>s+(i.amount||0), 0);
+  const netProfit = grossProfit - totalExp;
+  const margin = totalRev ? ((netProfit/totalRev)*100).toFixed(1) : 0;
+
+  kpiCards('pnlKpis', [
+    { label: 'GROSS REVENUE', value: fmt(totalRev), color: 'blue' },
+    { label: 'COGS', value: fmt(cogs), color: 'red' },
+    { label: 'GROSS PROFIT', value: fmt(grossProfit), color: grossProfit>=0?'green':'red' },
+    { label: 'TOTAL OPEX', value: fmt(totalExp), color: 'amber' },
+    { label: 'NET PROFIT', value: fmt(netProfit), color: netProfit>=0?'green':'red' },
+    { label: 'NET MARGIN', value: margin + '%', color: Number(margin)>=0?'green':'red' }
+  ]);
+
+  const m6 = getLast6Months();
+  const profitData = m6.map(m => {
+    const pr = sales.filter(s=>s.date.startsWith(m)).reduce((s,i)=>s+(i.profit||0),0);
+    const sr = subs.filter(s=>s.date.startsWith(m)).reduce((s,i)=>s+(i.total||0),0);
+    const e = exps.filter(x=>x.date.startsWith(m)).reduce((s,i)=>s+(i.amount||0),0);
+    return pr + sr - e;
+  });
+  const revData = m6.map(m => {
+    const pr = sales.filter(s=>s.date.startsWith(m)).reduce((s,i)=>s+(i.revenue||0),0);
+    const sr = subs.filter(s=>s.date.startsWith(m)).reduce((s,i)=>s+(i.total||0),0);
+    return pr+sr;
+  });
+
+  makeChart('pnlChart', {
+    type: 'bar',
+    data: {
+      labels: months6,
+      datasets: [
+        { label: 'Revenue', data: revData, backgroundColor: 'rgba(59,130,246,0.6)', borderRadius: 4 },
+        { label: 'Net Profit', data: profitData, backgroundColor: profitData.map(v=>v>=0?'rgba(16,185,129,0.7)':'rgba(239,68,68,0.7)'), borderRadius: 4 }
+      ]
+    },
+    options: { ...chartDefaults, responsive: true }
+  });
+
+  // Expense by category
+  const cats = {};
+  exps.forEach(e => { cats[e.category] = (cats[e.category]||0) + (e.amount||0); });
+  const catLabels = Object.keys(cats);
+  const catVals = catLabels.map(c => cats[c]);
+  const catColors = ['#3b82f6','#10b981','#f59e0b','#ef4444','#8b5cf6','#06b6d4','#f97316','#84cc16','#ec4899','#64748b'];
+
+  makeChart('expensePieChart', {
+    type: 'pie',
+    data: {
+      labels: catLabels.length ? catLabels : ['No data'],
+      datasets: [{ data: catVals.length ? catVals : [1], backgroundColor: catColors.slice(0,catLabels.length||1) }]
+    },
+    options: { responsive: true, plugins: { legend: { position: 'bottom', labels: { color: '#94a3b8', padding: 10, font:{size:10} } } } }
+  });
+
+  document.getElementById('pnlTable').innerHTML = `
+    <div class="form-title">Income Statement</div>
+    <div class="metric-row"><div class="metric-row-label">Product Revenue (${sales.length} sales × ₹2,999)</div><div class="metric-row-val blue">${fmt(prodRev)}</div></div>
+    <div class="metric-row"><div class="metric-row-label">Subscription Revenue</div><div class="metric-row-val blue">${fmt(subRev)}</div></div>
+    <div class="metric-row" style="font-weight:600"><div class="metric-row-label">Total Revenue</div><div class="metric-row-val blue">${fmt(totalRev)}</div></div>
+    <hr class="divider">
+    <div class="metric-row"><div class="metric-row-label">(-) Cost of Goods Sold</div><div class="metric-row-val red">(${fmt(cogs)})</div></div>
+    <div class="metric-row" style="font-weight:600"><div class="metric-row-label">Gross Profit</div><div class="metric-row-val ${grossProfit>=0?'green':'red'}">${fmt(grossProfit)}</div></div>
+    <div style="font-size:11px; color:var(--muted); margin-bottom:8px">Gross Margin: ${totalRev?pct(grossProfit,totalRev):'0%'}</div>
+    <hr class="divider">
+    <div class="metric-row"><div class="metric-row-label">(-) Operating Expenses</div><div class="metric-row-val red">(${fmt(totalExp)})</div></div>
+    <div class="metric-row" style="font-weight:700; font-size:15px"><div class="metric-row-label">NET PROFIT</div><div class="metric-row-val ${netProfit>=0?'green':'red'}">${fmt(netProfit)}</div></div>
+    <div style="font-size:11px; color:var(--muted)">Net Margin: ${margin}%</div>
+  `;
+}
+
+// ============================================================
+// RENDER PRODUCT
+// ============================================================
+function renderProduct() {
+  const sales = DB.get('sales');
+  const totalRev = sales.reduce((s,i)=>s+(i.revenue||0), 0);
+  const totalCost = sales.reduce((s,i)=>s+(i.totalCost||0), 0);
+  const totalProfit = sales.reduce((s,i)=>s+(i.profit||0), 0);
+  const units = sales.reduce((s,i)=>s+(i.units||0), 0);
+
+  kpiCards('productKpis', [
+    { label: 'TOTAL ORDERS', value: sales.length, color: 'blue' },
+    { label: 'UNITS SOLD', value: units, color: 'blue' },
+    { label: 'PRODUCT REVENUE', value: fmt(totalRev), color: 'green' },
+    { label: 'TOTAL COGS', value: fmt(totalCost), color: 'red' },
+    { label: 'GROSS PROFIT', value: fmt(totalProfit), color: totalProfit>=0?'green':'red' },
+    { label: 'MARGIN', value: totalRev ? pct(totalProfit,totalRev) : '0%', color: 'amber' }
+  ]);
+
+  const m6 = getLast6Months();
+  const unitsByM = m6.map(m => sales.filter(s=>s.date.startsWith(m)).reduce((s,i)=>s+(i.units||0),0));
+  const revByM = m6.map(m => sales.filter(s=>s.date.startsWith(m)).reduce((s,i)=>s+(i.revenue||0),0));
+  const costByM = m6.map(m => sales.filter(s=>s.date.startsWith(m)).reduce((s,i)=>s+(i.totalCost||0),0));
+
+  makeChart('productSalesChart', {
+    type: 'bar',
+    data: { labels: months6, datasets: [{ label: 'Units Sold', data: unitsByM, backgroundColor: 'rgba(59,130,246,0.7)', borderRadius: 4 }] },
+    options: { ...chartDefaults, responsive: true }
+  });
+
+  makeChart('productProfitChart', {
+    type: 'line',
+    data: {
+      labels: months6,
+      datasets: [
+        { label: 'Revenue', data: revByM, borderColor: '#3b82f6', backgroundColor: 'rgba(59,130,246,0.1)', fill: true, tension: 0.4 },
+        { label: 'Cost', data: costByM, borderColor: '#ef4444', backgroundColor: 'rgba(239,68,68,0.05)', fill: true, tension: 0.4 }
+      ]
+    },
+    options: { ...chartDefaults, responsive: true }
+  });
+
+  const tbody = document.getElementById('productTable');
+  if (!sales.length) {
+    tbody.innerHTML = '<tr><td colspan="10"><div class="empty"><div class="empty-icon">📦</div><div class="empty-text">No sales yet. Click "+ Add Sale" to record your first sale.</div></div></td></tr>';
+  } else {
+    tbody.innerHTML = [...sales].reverse().map(s => `
+      <tr>
+        <td>${s.date}</td>
+        <td class="num" style="font-size:11px">${s.orderId}</td>
+        <td>${s.customer}</td>
+        <td class="num">${s.units}</td>
+        <td class="num">${fmt(s.revenue)}</td>
+        <td class="num red">${fmt(s.totalCost)}</td>
+        <td class="num ${s.profit>=0?'green':'red'}">${fmt(s.profit)}</td>
+        <td><span class="badge badge-blue">${s.channel}</span></td>
+        <td><span class="badge ${s.status==='Delivered'?'badge-green':s.status==='Returned'?'badge-red':'badge-amber'}">${s.status}</span></td>
+        <td><button class="delete-btn" onclick="del('sales',${s.id})">🗑</button></td>
+      </tr>
+    `).join('');
+  }
+}
+
+// ============================================================
+// RENDER SUBSCRIPTION
+// ============================================================
+function renderSubscription() {
+  const subs = DB.get('subs');
+  const active = subs.filter(s=>s.status==='Active');
+  const mrr = active.length * 99;
+  const arr = mrr * 12;
+  const churned = subs.filter(s=>s.status==='Churned').length;
+  const churnRate = subs.length ? ((churned/subs.length)*100).toFixed(1) : 0;
+  const totalRev = subs.reduce((s,i)=>s+(i.total||0), 0);
+
+  kpiCards('subKpis', [
+    { label: 'ACTIVE SUBSCRIBERS', value: active.length, color: 'green' },
+    { label: 'MRR', value: fmt(mrr), color: 'green', sub: 'Monthly Recurring Revenue' },
+    { label: 'ARR', value: fmt(arr), color: 'blue', sub: 'Annual Run Rate' },
+    { label: 'CHURNED', value: churned, color: 'red' },
+    { label: 'CHURN RATE', value: churnRate + '%', color: 'amber' },
+    { label: 'LIFETIME SUB REV', value: fmt(totalRev), color: 'purple' }
+  ]);
+
+  const m6 = getLast6Months();
+  const mrrByM = m6.map(m => subs.filter(s=>s.date<=m+'-31'&&s.status==='Active').length * 99);
+  const newByM = m6.map(m => subs.filter(s=>s.date.startsWith(m)).length);
+  const churnByM = m6.map(m => subs.filter(s=>s.date.startsWith(m)&&s.status==='Churned').length);
+
+  makeChart('mrrChart', {
+    type: 'line',
+    data: {
+      labels: months6,
+      datasets: [{ label: 'MRR ₹', data: mrrByM, borderColor: '#10b981', backgroundColor: 'rgba(16,185,129,0.1)', fill: true, tension: 0.4, pointRadius: 4 }]
+    },
+    options: { ...chartDefaults, responsive: true }
+  });
+
+  makeChart('churnChart', {
+    type: 'bar',
+    data: {
+      labels: months6,
+      datasets: [
+        { label: 'New', data: newByM, backgroundColor: 'rgba(16,185,129,0.7)', borderRadius: 4 },
+        { label: 'Churned', data: churnByM, backgroundColor: 'rgba(239,68,68,0.7)', borderRadius: 4 }
+      ]
+    },
+    options: { ...chartDefaults, responsive: true }
+  });
+
+  const tbody = document.getElementById('subTable');
+  if (!subs.length) {
+    tbody.innerHTML = '<tr><td colspan="7"><div class="empty"><div class="empty-icon">🔄</div><div class="empty-text">No subscribers yet.</div></div></td></tr>';
+  } else {
+    tbody.innerHTML = [...subs].reverse().map(s => `
+      <tr>
+        <td>${s.date}</td>
+        <td>${s.customer}</td>
+        <td class="num">₹${s.fee}/mo</td>
+        <td class="num">${s.months}</td>
+        <td class="num green">${fmt(s.total)}</td>
+        <td><span class="badge ${s.status==='Active'?'badge-green':s.status==='Churned'?'badge-red':'badge-amber'}">${s.status}</span></td>
+        <td><button class="delete-btn" onclick="del('subs',${s.id})">🗑</button></td>
+      </tr>
+    `).join('');
+  }
+}
+
+// ============================================================
+// RENDER EXPENSES
+// ============================================================
+function renderExpenses() {
+  const exps = DB.get('expenses');
+  const total = exps.reduce((s,i)=>s+(i.amount||0), 0);
+  const cats = {};
+  exps.forEach(e => { cats[e.category] = (cats[e.category]||0)+(e.amount||0); });
+  const topCat = Object.entries(cats).sort((a,b)=>b[1]-a[1])[0];
+  const thisM = new Date().toISOString().slice(0,7);
+  const thisMonth = exps.filter(e=>e.date.startsWith(thisM)).reduce((s,i)=>s+(i.amount||0), 0);
+
+  kpiCards('expenseKpis', [
+    { label: 'TOTAL SPEND', value: fmt(total), color: 'red' },
+    { label: 'THIS MONTH', value: fmt(thisMonth), color: 'amber' },
+    { label: 'TOTAL RECORDS', value: exps.length, color: 'blue' },
+    { label: 'TOP CATEGORY', value: topCat ? topCat[0].split(' ')[0] : '—', color: 'purple', sub: topCat ? fmt(topCat[1]) : '' }
+  ]);
+
+  const m6 = getLast6Months();
+  const spendByM = m6.map(m => exps.filter(e=>e.date.startsWith(m)).reduce((s,i)=>s+(i.amount||0),0));
+  makeChart('spendChart', {
+    type: 'bar',
+    data: { labels: months6, datasets: [{ label: 'Spend ₹', data: spendByM, backgroundColor: 'rgba(239,68,68,0.6)', borderRadius: 4 }] },
+    options: { ...chartDefaults, responsive: true }
+  });
+
+  const catLabels = Object.keys(cats);
+  const catVals = catLabels.map(c => cats[c]);
+  const catColors = ['#3b82f6','#10b981','#f59e0b','#ef4444','#8b5cf6','#06b6d4','#f97316','#84cc16','#ec4899','#64748b'];
+  makeChart('spendCatChart', {
+    type: 'doughnut',
+    data: {
+      labels: catLabels.length?catLabels:['No data'],
+      datasets: [{ data: catVals.length?catVals:[1], backgroundColor: catColors.slice(0,catLabels.length||1) }]
+    },
+    options: { responsive: true, plugins: { legend: { position: 'bottom', labels: { color: '#94a3b8', padding: 8, font:{size:10} } } } }
+  });
+
+  const tbody = document.getElementById('expenseTable');
+  if (!exps.length) {
+    tbody.innerHTML = '<tr><td colspan="6"><div class="empty"><div class="empty-icon">💸</div><div class="empty-text">No expenses recorded yet.</div></div></td></tr>';
+  } else {
+    tbody.innerHTML = [...exps].reverse().map(e => `
+      <tr>
+        <td>${e.date}</td>
+        <td><span class="badge badge-amber">${e.category}</span></td>
+        <td>${e.desc||'—'}</td>
+        <td class="num red">${fmt(e.amount)}</td>
+        <td>${e.vendor||'—'}</td>
+        <td><button class="delete-btn" onclick="del('expenses',${e.id})">🗑</button></td>
+      </tr>
+    `).join('');
+  }
+}
+
+// ============================================================
+// RENDER CUSTOMERS
+// ============================================================
+function renderCustomers() {
+  const custs = DB.get('customers');
+  const withProd = custs.filter(c=>c.product).length;
+  const withSub = custs.filter(c=>c.sub).length;
+  const avgLtv = custs.length ? custs.reduce((s,c)=>s+(c.ltv||0),0)/custs.length : 0;
+
+  kpiCards('customerKpis', [
+    { label: 'TOTAL CUSTOMERS', value: custs.length, color: 'blue' },
+    { label: 'HAVE PRODUCT', value: withProd, color: 'blue', sub: pct(withProd,custs.length||1) },
+    { label: 'SUBSCRIBERS', value: withSub, color: 'green', sub: pct(withSub,custs.length||1) },
+    { label: 'AVG LTV', value: fmt(avgLtv), color: 'purple' },
+    { label: 'BOTH (PRODUCT+SUB)', value: custs.filter(c=>c.product&&c.sub).length, color: 'amber', sub: 'Highest value customers' }
+  ]);
+
+  const tbody = document.getElementById('customerTable');
+  if (!custs.length) {
+    tbody.innerHTML = '<tr><td colspan="9"><div class="empty"><div class="empty-icon">👥</div><div class="empty-text">No customers yet.</div></div></td></tr>';
+  } else {
+    tbody.innerHTML = [...custs].reverse().map(c => `
+      <tr>
+        <td>${c.name}</td>
+        <td>${c.phone||'—'}</td>
+        <td>${c.city||'—'}</td>
+        <td><span class="badge ${c.product?'badge-blue':'badge-red'}">${c.product?'Yes':'No'}</span></td>
+        <td><span class="badge ${c.sub?'badge-green':'badge-red'}">${c.sub?'Active':'No'}</span></td>
+        <td class="num green">${fmt(c.ltv)}</td>
+        <td>${c.source}</td>
+        <td>${c.date}</td>
+        <td><button class="delete-btn" onclick="del('customers',${c.id})">🗑</button></td>
+      </tr>
+    `).join('');
+  }
+}
+
+// ============================================================
+// RENDER FUNNEL
+// ============================================================
+function renderFunnel() {
+  const fns = DB.get('funnel');
+  const latest = fns[fns.length-1] || {};
+  const avgCac = fns.length ? Math.round(fns.reduce((s,i)=>s+Number(i.cac||0),0)/fns.length) : 0;
+  const totalConv = fns.reduce((s,i)=>s+Number(i.conversions||0), 0);
+  const totalSpend = fns.reduce((s,i)=>s+Number(i.adSpend||0), 0);
+  const overallCac = totalConv ? Math.round(totalSpend/totalConv) : 0;
+
+  kpiCards('funnelKpis', [
+    { label: 'AVG CAC', value: overallCac ? fmt(overallCac) : '—', color: 'amber', sub: 'Cost to acquire 1 customer' },
+    { label: 'TOTAL AD SPEND', value: fmt(totalSpend), color: 'red' },
+    { label: 'TOTAL CONVERSIONS', value: totalConv, color: 'green' },
+    { label: 'LATEST CTR', value: latest.ctr ? latest.ctr + '%' : '—', color: 'blue', sub: 'Click-through rate' },
+    { label: 'LATEST CVR', value: latest.cvr ? latest.cvr + '%' : '—', color: 'purple', sub: 'Conversion rate' },
+    { label: 'LTV:CAC RATIO', value: overallCac ? (2999/overallCac).toFixed(1)+'x' : '—', color: 'green', sub: '>3x is healthy' }
+  ]);
+
+  // Funnel visualization
+  const fViz = document.getElementById('funnelViz');
+  if (latest.impressions) {
+    const steps = [
+      { label: 'Impressions', val: latest.impressions, color: '#3b82f6' },
+      { label: 'Clicks', val: latest.clicks, color: '#8b5cf6' },
+      { label: 'Leads', val: latest.leads, color: '#f59e0b' },
+      { label: 'Trials', val: latest.trials, color: '#f97316' },
+      { label: 'Conversions', val: latest.conversions, color: '#10b981' }
+    ];
+    const max = steps[0].val;
+    fViz.innerHTML = steps.map(s => {
+      const w = max ? Math.max((s.val/max)*100, 3) : 0;
+      const pctShow = steps[0] === s ? '100%' : max ? pct(s.val,max) : '—';
+      return `
+        <div class="funnel-step">
+          <div class="funnel-label">${s.label}</div>
+          <div class="funnel-bar-wrap">
+            <div class="funnel-bar" style="width:${w}%; background:${s.color}">${s.val.toLocaleString()}</div>
+          </div>
+          <div class="funnel-pct">${pctShow}</div>
+        </div>
+      `;
+    }).join('');
+  } else {
+    fViz.innerHTML = '<div class="empty" style="padding:24px"><div class="empty-text">Add funnel data to see visualization</div></div>';
+  }
+
+  // CAC chart
+  const m6 = getLast6Months();
+  const cacByM = m6.map(m => {
+    const fn = fns.filter(f => f.month === m);
+    if (!fn.length) return 0;
+    const spend = fn.reduce((s,i)=>s+Number(i.adSpend||0), 0);
+    const conv = fn.reduce((s,i)=>s+Number(i.conversions||0), 0);
+    return conv ? Math.round(spend/conv) : 0;
+  });
+
+  makeChart('cacChart', {
+    type: 'line',
+    data: {
+      labels: months6,
+      datasets: [{ label: 'CAC ₹', data: cacByM, borderColor: '#f59e0b', backgroundColor: 'rgba(245,158,11,0.1)', fill: true, tension: 0.4, pointRadius: 4 }]
+    },
+    options: { ...chartDefaults, responsive: true }
+  });
+
+  const tbody = document.getElementById('funnelTable');
+  if (!fns.length) {
+    tbody.innerHTML = '<tr><td colspan="11"><div class="empty"><div class="empty-text">No funnel data yet.</div></div></td></tr>';
+  } else {
+    tbody.innerHTML = [...fns].reverse().map(f => `
+      <tr>
+        <td>${f.month}</td>
+        <td class="num">${Number(f.impressions||0).toLocaleString()}</td>
+        <td class="num">${Number(f.clicks||0).toLocaleString()}</td>
+        <td class="num">${Number(f.leads||0).toLocaleString()}</td>
+        <td class="num">${Number(f.trials||0).toLocaleString()}</td>
+        <td class="num green">${Number(f.conversions||0).toLocaleString()}</td>
+        <td class="num red">${fmt(f.adSpend)}</td>
+        <td class="num amber">${fmt(f.cac)}</td>
+        <td class="num">${f.ctr}%</td>
+        <td class="num">${f.cvr}%</td>
+        <td><button class="delete-btn" onclick="del('funnel',${f.id})">🗑</button></td>
+      </tr>
+    `).join('');
+  }
+}
+
+// ============================================================
+// RENDER CHARTS
+// ============================================================
+function renderCharts() {
+  const sales = DB.get('sales');
+  const subs = DB.get('subs');
+  const exps = DB.get('expenses');
+  const fns = DB.get('funnel');
+  const m6 = getLast6Months();
+
+  // Margin % chart
+  const marginData = m6.map(m => {
+    const rev = sales.filter(s=>s.date.startsWith(m)).reduce((s,i)=>s+(i.revenue||0),0)
+              + subs.filter(s=>s.date.startsWith(m)).reduce((s,i)=>s+(i.total||0),0);
+    const cost = sales.filter(s=>s.date.startsWith(m)).reduce((s,i)=>s+(i.totalCost||0),0)
+               + exps.filter(e=>e.date.startsWith(m)).reduce((s,i)=>s+(i.amount||0),0);
+    return rev ? (((rev-cost)/rev)*100).toFixed(1) : 0;
+  });
+  const revData = m6.map(m =>
+    sales.filter(s=>s.date.startsWith(m)).reduce((s,i)=>s+(i.revenue||0),0)
+    + subs.filter(s=>s.date.startsWith(m)).reduce((s,i)=>s+(i.total||0),0)
+  );
+
+  makeChart('marginChart', {
+    type: 'bar',
+    data: {
+      labels: months6,
+      datasets: [
+        { label: 'Revenue ₹', data: revData, backgroundColor: 'rgba(59,130,246,0.5)', borderRadius: 4, yAxisID: 'y' },
+        { label: 'Margin %', data: marginData, type: 'line', borderColor: '#f59e0b', tension: 0.4, pointRadius: 4, yAxisID: 'y1' }
+      ]
+    },
+    options: {
+      responsive: true,
+      plugins: chartDefaults.plugins,
+      scales: {
+        x: chartDefaults.scales.x,
+        y: { ...chartDefaults.scales.y, position: 'left' },
+        y1: { ...chartDefaults.scales.y, position: 'right', grid: { drawOnChartArea: false } }
+      }
+    }
+  });
+
+  // LTV:CAC
+  const cacByM = m6.map(m => {
+    const fn = fns.filter(f=>f.month===m);
+    if (!fn.length) return 0;
+    const spend = fn.reduce((s,i)=>s+Number(i.adSpend||0),0);
+    const conv = fn.reduce((s,i)=>s+Number(i.conversions||0),0);
+    return conv ? Math.round(spend/conv) : 0;
+  });
+  const ltvData = m6.map(() => 2999 + 99*6); // estimated 6-month sub value
+
+  makeChart('ltvCacChart', {
+    type: 'bar',
+    data: {
+      labels: months6,
+      datasets: [
+        { label: 'LTV ₹', data: ltvData, backgroundColor: 'rgba(16,185,129,0.6)', borderRadius: 4 },
+        { label: 'CAC ₹', data: cacByM, backgroundColor: 'rgba(239,68,68,0.6)', borderRadius: 4 }
+      ]
+    },
+    options: { ...chartDefaults, responsive: true }
+  });
+
+  // MRR + Churn
+  const mrrByM = m6.map(m => subs.filter(s=>s.date<=m+'-31'&&s.status==='Active').length*99);
+  const churnRateByM = m6.map(m => {
+    const total = subs.filter(s=>s.date.startsWith(m)).length;
+    const churned = subs.filter(s=>s.date.startsWith(m)&&s.status==='Churned').length;
+    return total ? ((churned/total)*100).toFixed(1) : 0;
+  });
+
+  makeChart('mrrChurnChart', {
+    type: 'bar',
+    data: {
+      labels: months6,
+      datasets: [
+        { label: 'MRR ₹', data: mrrByM, backgroundColor: 'rgba(139,92,246,0.6)', borderRadius: 4, yAxisID: 'y' },
+        { label: 'Churn %', data: churnRateByM, type: 'line', borderColor: '#ef4444', tension: 0.4, pointRadius: 4, yAxisID: 'y1' }
+      ]
+    },
+    options: {
+      responsive: true,
+      plugins: chartDefaults.plugins,
+      scales: {
+        x: chartDefaults.scales.x,
+        y: { ...chartDefaults.scales.y, position: 'left' },
+        y1: { ...chartDefaults.scales.y, position: 'right', grid: { drawOnChartArea: false } }
+      }
+    }
+  });
+
+  // Cumulative profit
+  let cumulative = 0;
+  const cumulData = m6.map(m => {
+    const p = sales.filter(s=>s.date.startsWith(m)).reduce((s,i)=>s+(i.profit||0),0)
+            + subs.filter(s=>s.date.startsWith(m)).reduce((s,i)=>s+(i.total||0),0)
+            - exps.filter(e=>e.date.startsWith(m)).reduce((s,i)=>s+(i.amount||0),0);
+    cumulative += p;
+    return cumulative;
+  });
+
+  makeChart('cumulativeChart', {
+    type: 'line',
+    data: {
+      labels: months6,
+      datasets: [{
+        label: 'Cumulative Profit ₹',
+        data: cumulData,
+        borderColor: cumulData[cumulData.length-1] >= 0 ? '#10b981' : '#ef4444',
+        backgroundColor: cumulData[cumulData.length-1] >= 0 ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)',
+        fill: true, tension: 0.4, pointRadius: 4
+      }]
+    },
+    options: { ...chartDefaults, responsive: true }
+  });
+
+  // Channel chart
+  const channels = {};
+  sales.forEach(s => { channels[s.channel] = (channels[s.channel]||0) + (s.revenue||0); });
+  const chLabels = Object.keys(channels);
+  const chVals = chLabels.map(c => channels[c]);
+  const chColors = ['rgba(59,130,246,0.7)','rgba(16,185,129,0.7)','rgba(245,158,11,0.7)','rgba(139,92,246,0.7)','rgba(239,68,68,0.7)','rgba(6,182,212,0.7)'];
+
+  makeChart('channelChart', {
+    type: 'bar',
+    data: {
+      labels: chLabels.length?chLabels:['No data'],
+      datasets: [{ label: 'Revenue ₹', data: chVals.length?chVals:[0], backgroundColor: chColors.slice(0,chLabels.length||1), borderRadius: 6 }]
+    },
+    options: { ...chartDefaults, responsive: true, indexAxis: 'y' }
+  });
+}
+
+// ============================================================
+// RENDER ALL
+// ============================================================
+function renderAll() {
+  const active = document.querySelector('.section.active')?.id?.replace('sec-','');
+  if (active === 'dashboard') renderDashboard();
+  else if (active === 'pnl') renderPnL();
+  else if (active === 'product') renderProduct();
+  else if (active === 'subscription') renderSubscription();
+  else if (active === 'expenses') renderExpenses();
+  else if (active === 'customers') renderCustomers();
+  else if (active === 'funnel') renderFunnel();
+  else if (active === 'charts') renderCharts();
+}
+
+// ============================================================
+// EXPORT
+// ============================================================
+function exportData() {
+  const sales = DB.get('sales');
+  if (!sales.length) { toast('No data to export', 'var(--accent3)'); return; }
+  const headers = 'Date,OrderID,Customer,Units,Revenue,COGS,Profit,Channel,Status';
+  const rows = sales.map(s => `${s.date},${s.orderId},${s.customer},${s.units},${s.revenue},${s.totalCost},${s.profit},${s.channel},${s.status}`);
+  const csv = [headers, ...rows].join('\n');
+  const a = document.createElement('a');
+  a.href = 'data:text/csv,' + encodeURIComponent(csv);
+  a.download = 'bizflow_sales.csv';
+  a.click();
+  toast('📥 Exported!');
+}
+
+// ============================================================
+// INIT
+// ============================================================
+window.addEventListener('click', e => {
+  ['addProductModal','addSubModal','addExpenseModal','addCustomerModal','addFunnelModal'].forEach(id => {
+    const modal = document.getElementById(id);
+    if (e.target === modal) modal.style.display = 'none';
+  });
+});
+
+// Set defaults
+setDefaultDate(['ps_date','sub_date','exp_date','cust_date']);
+document.getElementById('fn_month').value = new Date().toISOString().slice(0,7);
+
+renderAll();
+</script>
+</body>
+</html>
