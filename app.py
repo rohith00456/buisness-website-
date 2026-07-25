@@ -14,7 +14,7 @@ app = Flask(__name__, static_folder='static', static_url_path='')
 # DATABASE SETUP (MongoDB)
 # ============================================================
 MONGO_URI = os.getenv('MONGO_URI', 'mongodb://localhost:27017/')
-client = MongoClient(MONGO_URI)
+client = MongoClient(MONGO_URI, serverSelectionTimeoutMS=5000)
 
 # Use 'bizflow' database
 db = client['bizflow']
@@ -22,7 +22,7 @@ db = client['bizflow']
 # ============================================================
 # VALID CATEGORIES (collection names)
 # ============================================================
-VALID_CATEGORIES = ['sales', 'subs', 'expenses', 'customers', 'funnel']
+VALID_CATEGORIES = ['sales', 'subs', 'expenses', 'customers', 'funnel', 'hardware']
 
 def generate_id():
     """Generate a unique ID similar to the JS version."""

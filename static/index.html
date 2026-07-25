@@ -468,6 +468,9 @@
         <div class="nav-item" onclick="navigate('funnel')">
           <span class="nav-icon">🎯</span> Funnel & CAC
         </div>
+        <div class="nav-item" onclick="navigate('hardware')">
+          <span class="nav-icon">🛠️</span> Hardware & BOM
+        </div>
       </div>
       <div class="nav-group">
         <div class="nav-label">Analytics</div>
@@ -808,6 +811,46 @@
         </div>
       </div>
 
+      <!-- ============ HARDWARE BOM ============ -->
+      <div class="section" id="sec-hardware">
+        <div class="section-header">
+          <div>
+            <div class="section-title">Hardware Prototyping & BOM</div>
+            <div class="section-sub">Track manufacturing, PCB, and App costs per module</div>
+          </div>
+          <button class="btn btn-primary" onclick="document.getElementById('addHardwareModal').style.display='flex'">+ Add Prototype</button>
+        </div>
+
+        <div class="kpi-grid" id="hardwareKpis"></div>
+
+        <div class="table-card">
+          <div class="table-header">
+            <span class="table-title">Prototype & Module Details</span>
+            <input type="text" placeholder="Search..." oninput="filterTable('hardwareTable', this.value)" style="width:200px; padding:6px 10px; font-size:12px">
+          </div>
+          <div style="overflow-x:auto;">
+            <table style="min-width: 1000px;">
+              <thead>
+                <tr>
+                  <th>Module Name</th>
+                  <th>Function</th>
+                  <th>Prototype Cost</th>
+                  <th>Outsource Cost</th>
+                  <th>App Cost</th>
+                  <th>Monthly App</th>
+                  <th>PCB Cost</th>
+                  <th>Outer Case</th>
+                  <th>Box Price</th>
+                  <th>Unit BOM</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="hardwareTable"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
       <!-- ============ CHARTS ============ -->
       <div class="section" id="sec-charts">
         <div class="section-header">
@@ -1104,6 +1147,66 @@
   </div>
 </div>
 
+<!-- ADD HARDWARE BOM -->
+<div id="addHardwareModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.7); z-index:200; align-items:center; justify-content:center;">
+  <div style="background:var(--card); border:1px solid var(--border); border-radius:16px; padding:28px; width:640px; max-width:95vw; max-height:90vh; overflow-y:auto;">
+    <div style="font-size:15px; font-weight:600; margin-bottom:20px;">🛠️ Add Prototype Module</div>
+    
+    <div style="font-size:12px; color:var(--accent); font-weight:600; margin-bottom:12px; border-bottom:1px solid var(--border); padding-bottom:6px;">MODULE DETAILS</div>
+    <div class="form-grid">
+      <div class="form-group form-span">
+        <label>Module Name</label>
+        <input type="text" id="hw_name" placeholder="e.g. Smart Base Station v1">
+      </div>
+      <div class="form-group form-span">
+        <label>Function (For single prototype)</label>
+        <textarea id="hw_func" placeholder="What does this prototype do?"></textarea>
+      </div>
+    </div>
+
+    <div style="font-size:12px; color:var(--accent2); font-weight:600; margin-top:20px; margin-bottom:12px; border-bottom:1px solid var(--border); padding-bottom:6px;">DEVELOPMENT & APP COSTS (One-time / Monthly)</div>
+    <div class="form-grid triple">
+      <div class="form-group">
+        <label>Prototype Cost (₹)</label>
+        <input type="number" id="hw_proto" placeholder="0">
+      </div>
+      <div class="form-group">
+        <label>Outsource Cost (₹)</label>
+        <input type="number" id="hw_outsource" placeholder="0">
+      </div>
+      <div class="form-group">
+        <label>App Cost (₹)</label>
+        <input type="number" id="hw_app" placeholder="0">
+      </div>
+      <div class="form-group">
+        <label>Monthly App Cost (₹)</label>
+        <input type="number" id="hw_app_monthly" placeholder="0">
+      </div>
+    </div>
+
+    <div style="font-size:12px; color:var(--accent3); font-weight:600; margin-top:20px; margin-bottom:12px; border-bottom:1px solid var(--border); padding-bottom:6px;">UNIT BOM COST (Per 1 PCB / Box)</div>
+    <div class="form-grid triple">
+      <div class="form-group">
+        <label>1 PCB Cost (₹)</label>
+        <input type="number" id="hw_pcb" placeholder="0">
+      </div>
+      <div class="form-group">
+        <label>Outer Case (₹)</label>
+        <input type="number" id="hw_case" placeholder="0">
+      </div>
+      <div class="form-group">
+        <label>Box Price (₹)</label>
+        <input type="number" id="hw_box" placeholder="0">
+      </div>
+    </div>
+
+    <div class="form-actions">
+      <button class="btn btn-ghost" onclick="closeModal('addHardwareModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveHardware()">Save Prototype</button>
+    </div>
+  </div>
+</div>
+
 <!-- TOAST -->
 <div class="toast" id="toast"></div>
 
@@ -1111,7 +1214,7 @@
 // ============================================================
 // DATA LAYER — Server-backed persistence with in-memory cache
 // ============================================================
-const _cache = { sales: [], subs: [], expenses: [], customers: [], funnel: [] };
+const _cache = { sales: [], subs: [], expenses: [], customers: [], funnel: [], hardware: [] };
 
 const DB = {
   get(key) {
@@ -1147,6 +1250,7 @@ const DB = {
       _cache.expenses = data.expenses || [];
       _cache.customers = data.customers || [];
       _cache.funnel = data.funnel || [];
+      _cache.hardware = data.hardware || [];
     } catch(e) {
       console.error('Failed to load data from server:', e);
     }
@@ -1156,8 +1260,8 @@ const DB = {
 // ============================================================
 // NAVIGATION
 // ============================================================
-const sections = ['dashboard','pnl','product','subscription','expenses','customers','funnel','charts'];
-const titles = { dashboard:'Dashboard', pnl:'P&L Summary', product:'Product Sales', subscription:'Subscriptions', expenses:'Expenses', customers:'Customers', funnel:'Funnel & CAC', charts:'Analytics' };
+const sections = ['dashboard','pnl','product','subscription','expenses','customers','funnel','hardware','charts'];
+const titles = { dashboard:'Dashboard', pnl:'P&L Summary', product:'Product Sales', subscription:'Subscriptions', expenses:'Expenses', customers:'Customers', funnel:'Funnel & CAC', hardware:'Hardware & BOM', charts:'Analytics' };
 
 function navigate(id) {
   sections.forEach(s => {
@@ -1347,6 +1451,44 @@ async function saveFunnel() {
   await DB.push('funnel', fn);
   closeModal('addFunnelModal');
   toast('✅ Funnel data saved!');
+  renderAll();
+}
+
+// ============================================================
+// MODALS — HARDWARE BOM
+// ============================================================
+async function saveHardware() {
+  const hw = {
+    name: document.getElementById('hw_name').value || 'Unnamed Module',
+    func: document.getElementById('hw_func').value,
+    proto: Number(document.getElementById('hw_proto').value) || 0,
+    outsource: Number(document.getElementById('hw_outsource').value) || 0,
+    app: Number(document.getElementById('hw_app').value) || 0,
+    appMonthly: Number(document.getElementById('hw_app_monthly').value) || 0,
+    pcb: Number(document.getElementById('hw_pcb').value) || 0,
+    outerCase: Number(document.getElementById('hw_case').value) || 0,
+    box: Number(document.getElementById('hw_box').value) || 0
+  };
+  
+  // Calculate totals
+  hw.totalDev = hw.proto + hw.outsource + hw.app;
+  hw.unitBom = hw.pcb + hw.outerCase + hw.box;
+
+  await DB.push('hardware', hw);
+  closeModal('addHardwareModal');
+  toast('✅ Hardware BOM saved!', 'var(--accent)');
+  
+  // Reset form
+  document.getElementById('hw_name').value = '';
+  document.getElementById('hw_func').value = '';
+  document.getElementById('hw_proto').value = '';
+  document.getElementById('hw_outsource').value = '';
+  document.getElementById('hw_app').value = '';
+  document.getElementById('hw_app_monthly').value = '';
+  document.getElementById('hw_pcb').value = '';
+  document.getElementById('hw_case').value = '';
+  document.getElementById('hw_box').value = '';
+  
   renderAll();
 }
 
@@ -1905,6 +2047,45 @@ function renderFunnel() {
 }
 
 // ============================================================
+// RENDER HARDWARE BOM
+// ============================================================
+function renderHardware() {
+  const hws = DB.get('hardware');
+  
+  const totalDev = hws.reduce((s, i) => s + (i.totalDev || 0), 0);
+  const totalMonthlyApp = hws.reduce((s, i) => s + (i.appMonthly || 0), 0);
+  const totalBom = hws.reduce((s, i) => s + (i.unitBom || 0), 0);
+  
+  kpiCards('hardwareKpis', [
+    { label: 'TOTAL MODULES', value: hws.length, color: 'blue' },
+    { label: 'TOTAL R&D SPEND', value: fmt(totalDev), color: 'amber', sub: 'Proto + Outsource + App' },
+    { label: 'TOTAL UNIT BOM', value: fmt(totalBom), color: 'green', sub: 'Sum of all PCB+Case+Box' },
+    { label: 'MONTHLY APP COST', value: fmt(totalMonthlyApp), color: 'purple', sub: 'Recurring software' }
+  ]);
+
+  const tbody = document.getElementById('hardwareTable');
+  if (!hws.length) {
+    tbody.innerHTML = '<tr><td colspan="11"><div class="empty"><div class="empty-icon">🛠️</div><div class="empty-text">No hardware modules added yet.</div></div></td></tr>';
+  } else {
+    tbody.innerHTML = [...hws].reverse().map(h => `
+      <tr>
+        <td style="font-weight:600; color:var(--text)">${h.name}</td>
+        <td style="font-size:11px; max-width:150px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="${h.func||''}">${h.func||'—'}</td>
+        <td class="num">${fmt(h.proto)}</td>
+        <td class="num">${fmt(h.outsource)}</td>
+        <td class="num">${fmt(h.app)}</td>
+        <td class="num purple">${fmt(h.appMonthly)}/mo</td>
+        <td class="num">${fmt(h.pcb)}</td>
+        <td class="num">${fmt(h.outerCase)}</td>
+        <td class="num">${fmt(h.box)}</td>
+        <td class="num green" style="font-weight:600">${fmt(h.unitBom)}</td>
+        <td><button class="delete-btn" onclick="del('hardware',${h.id})">🗑</button></td>
+      </tr>
+    `).join('');
+  }
+}
+
+// ============================================================
 // RENDER CHARTS
 // ============================================================
 function renderCharts() {
@@ -2051,6 +2232,7 @@ function renderAll() {
   else if (active === 'expenses') renderExpenses();
   else if (active === 'customers') renderCustomers();
   else if (active === 'funnel') renderFunnel();
+  else if (active === 'hardware') renderHardware();
   else if (active === 'charts') renderCharts();
 }
 
@@ -2074,7 +2256,7 @@ function exportData() {
 // INIT — Load data from server, then render
 // ============================================================
 window.addEventListener('click', e => {
-  ['addProductModal','addSubModal','addExpenseModal','addCustomerModal','addFunnelModal'].forEach(id => {
+  ['addProductModal','addSubModal','addExpenseModal','addCustomerModal','addFunnelModal','addHardwareModal'].forEach(id => {
     const modal = document.getElementById(id);
     if (e.target === modal) modal.style.display = 'none';
   });
