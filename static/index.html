@@ -1225,7 +1225,7 @@ const DB = {
         date: h.date || new Date().toISOString().slice(0,10),
         category: 'Hardware R&D',
         desc: h.name,
-        amount: (h.proto || 0) + (h.outsource || 0) + (h.app || 0),
+        amount: (h.proto || 0) + (h.outsource || 0) + (h.app || 0) + (h.pcb || 0) + (h.outerCase || 0) + (h.box || 0),
         vendor: 'Internal / BOM',
         isHardware: true
       })).filter(e => e.amount > 0);
