@@ -1218,6 +1218,19 @@ const _cache = { sales: [], subs: [], expenses: [], customers: [], funnel: [], h
 
 const DB = {
   get(key) {
+    if (key === 'expenses') {
+      const base = _cache.expenses || [];
+      const hwExps = (_cache.hardware || []).map(h => ({
+        id: 'hw_' + h.id,
+        date: h.date || new Date().toISOString().slice(0,10),
+        category: 'Hardware R&D',
+        desc: h.name,
+        amount: (h.proto || 0) + (h.outsource || 0) + (h.app || 0),
+        vendor: 'Internal / BOM',
+        isHardware: true
+      })).filter(e => e.amount > 0);
+      return [...base, ...hwExps];
+    }
     return _cache[key] || [];
   },
   async push(key, item) {
@@ -1459,6 +1472,7 @@ async function saveFunnel() {
 // ============================================================
 async function saveHardware() {
   const hw = {
+    date: new Date().toISOString().slice(0,10),
     name: document.getElementById('hw_name').value || 'Unnamed Module',
     func: document.getElementById('hw_func').value,
     proto: Number(document.getElementById('hw_proto').value) || 0,
@@ -1914,7 +1928,7 @@ function renderExpenses() {
         <td>${e.desc||'—'}</td>
         <td class="num red">${fmt(e.amount)}</td>
         <td>${e.vendor||'—'}</td>
-        <td><button class="delete-btn" onclick="del('expenses',${e.id})">🗑</button></td>
+        <td>${e.isHardware ? '<span class="badge badge-blue">Auto</span>' : `<button class="delete-btn" onclick="del('expenses',${e.id})">🗑</button>`}</td>
       </tr>
     `).join('');
   }
