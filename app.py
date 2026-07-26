@@ -13,7 +13,7 @@ app = Flask(__name__, static_folder='static', static_url_path='')
 # ============================================================
 # DATABASE SETUP (MongoDB)
 # ============================================================
-MONGO_URI = os.getenv('MONGO_URI', 'mongodb://localhost:27017/')
+MONGO_URI = os.getenv('MONGO_URI', 'mongodb+srv://rohithmech2006_db_user:Rohith123456@cluster0.3mif2an.mongodb.net/bizflow?retryWrites=true&w=majority&appName=Cluster0')
 client = MongoClient(MONGO_URI, serverSelectionTimeoutMS=5000)
 
 # Use 'bizflow' database
